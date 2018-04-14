@@ -8,6 +8,11 @@ For instances where the data length code (DLC) is not 8 bytes, the DLC is specif
 
 ![](CAN-Bus-frame.png)
 
+Many similarities in CAN IDs found in the [Knio/carhack repo](https://github.com/Knio/carhack/blob/master/Cars/Nissan.markdown).
+Planning on cross-referencing this soon. It is quite likely that all Nissan vehicles share CAN IDs for common fucntions.
+
+Also planning on cross-referencing from the [commaai/opendbc PR #72](https://github.com/commaai/opendbc/pull/72) which has further categorized Nissan CAN IDs.
+
 ## Inputs to reverse engineer
 
 A preliminary list of human vehicle controls to sniff the CAN bus for
