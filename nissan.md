@@ -2,18 +2,21 @@
 
 ## CAN bus frame
 
-Note that when referring to recorded data bytes in a CAN message payload, bytes are numbered left-to-right with index 1 as I saw them on screen.
-Bits referenced are numbered right-to-left in [zero-order](https://en.wikipedia.org/wiki/Zero-based_numbering) with 8 bits per byte.
-For instances where the data length code (DLC) is not 8 bytes, the DLC is specified.
+CAN message bytes are referenced by letters A-H:
 
-![](CAN-Bus-frame.png)
+`(A, B, C, D, E, F, G, H)`
+
+Individual bits within a byte are represented by the byte letter followed by a period followed by a number (1-8).
+For example, `B.1` would mean the first bit within the second byte, and `C.6` would mean the sixth bit within the third byte.
+Hyphens denote a range.
+For instances where the data length code (DLC) is not 8 bytes, the DLC is specified.
 
 Many similarities in CAN IDs found in the [Knio/carhack repo](https://github.com/Knio/carhack/blob/master/Cars/Nissan.markdown).
 Planning on cross-referencing this soon. It is quite likely that all Nissan vehicles share CAN IDs for common fucntions.
 
 Also planning on cross-referencing from the [commaai/opendbc PR #72](https://github.com/commaai/opendbc/pull/72) which has further categorized Nissan CAN IDs.
 
-## Inputs to reverse engineer
+## Controls to reverse engineer
 
 A preliminary list of human vehicle controls to sniff the CAN bus for
 
@@ -83,10 +86,10 @@ When key moved to first position (before ACC), messages from the following IDs a
 When vehicle is off (no key inserted at all) and a control is activated (one that is allowed to be used when the vehicle is off; eg. door open, hazard & head lights) messages with the following IDs are seen in addition to the usual ones associated with said control
 
 * 35D
-  * data byte 2, bits 0-1 => 0b00=doors closed, 0b11=driver door opened
+  * `B.1-B.2` => 0b00=doors closed, 0b11=driver door opened
 * 625
   * DLC=6
-  * data byte 4, bits 0-1 => 0b10=doors closed, 0b01=any door opened
+  * `D.1-D.2` => 0b10=doors closed, 0b01=any door opened
 
 ### ACC on, engine off
 
@@ -95,22 +98,22 @@ CAN bus load 30%
 Messages from the following IDs always actively changing
 
 * 174
-  * data byte 5 => cycles through values 01 04 05 09 0C 0D
+  * `E` => cycles through values 0x01 0x04 0x05 0x09 0x0C 0x0D
 * 176
   * DLC=7
-  * data byte 7 => cycles through values 01 05 06 09 0D
+  * `G` => cycles through values 0x01 0x05 0x06 0x09 0x0D
 * 180
 * 182
 * 280
 * 284
 * 285
 * 551
-  * data byte 1, bits 0-1  => cycles through values 0b01 0b10
+  * `A.1-A.2` => cycles through values 0b01 0b10
 * 560
   * DLC=3
 * 6E2
   * DLC=3
-  * data byte 3 => cycles through values 78 7A and 7B 79
+  * `C` => cycles through values 0x78 0x7A and 0x7B 0x79
 
 ### Engine running
 
@@ -137,16 +140,16 @@ Bolded IDs are newly seen relative to when ACC on.
 #### Accelorator pedal
 
 * 160
-  * bytes 5-8 => seem to correspond to pedal position
-  * bytes 1-2 => 3D64 when pedal not pressed, increases to 41D4 when fully pressed
-  * byte 3 => always A1
+  * `E-H` => seem to correspond to pedal position
+  * `A-B` => 0x3D64 when pedal not pressed, increases to 0x41D4 when fully pressed
+  * `C` => always 0xA1
 
 #### Brake pedal
 
 * 354
-  * byte 7, bit 4 => 0=not pressed, 1=pressed
+  * `G.5` => 0=not pressed, 1=pressed
 * 35D
-  * byte 5, bit 4 => 0=not pressed, 1=pressed
+  * `E.5` => 0=not pressed, 1=pressed
 
 #### Steering wheel angle
 
@@ -161,19 +164,19 @@ Forward facing lights
 Possible states are: off, headlights on, fog lights on, high beams on
 
 * 358
-  * byte 2, bit 7 => 0=off, 1=any light on
+  * `B.8` => 0=off, 1=any light on
 * 60D
-  * byte 1, bits 1-2  => 0b00=off, 0b10=headlights on, 0b11=fog lights on
+  * `A.2-A.3`  => 0b00=off, 0b10=headlights on, 0b11=fog lights on
 * 60D
-  * byte 2, bit 3 => 0=high beams off, 1=high beams on
+  * `B.4` => 0=high beams off, 1=high beams on
 * 625
   * DLC=6
-  * byte 2, bits 4-6 => 0b000=off, 0b100=headlights on, 0b110=fog lights on, 0b001=high beams on
+  * `B.5-B.7` => 0b000=off, 0b100=headlights on, 0b110=fog lights on, 0b001=high beams on
 
 When car is off (no key inserted)
 
 * 5C5
-  * byte 1, bits 6-7 => 0b10=off, 0b01=any light on
+  * `A.7-A.8` => 0b10=off, 0b01=any light on
 
 #### Windshield wipers
  
@@ -182,13 +185,13 @@ Wiper control stick
 Possible states are: off, oneshot ("MIST"), intermittent ("INT"), slow ("LO"), fast ("HI")
 
 * 35D
-  * byte 3, bits 5-7 => 0b000=off, 0b110=oneshot, 0b010=intermittent, 0b110=slow, 0b111=fast
+  * `C.6-C.8` => 0b000=off, 0b110=oneshot, 0b010=intermittent, 0b110=slow, 0b111=fast
   * Bits for oneshot and slow settings are the same
 * 354
   * appears during intermittent wiper setting
-  * byte 5, bit 1 => 0=off, 1=intermittent, ...
+  * `E.2` => 0=off, 1=intermittent, ...
 * 625
-  * byte 1, bits 1-2 => 0b01=off, 0b10=intermittent, ...
+  * `A.2-A.3` => 0b01=off, 0b10=intermittent, ...
 
 #### Turn signals
 
@@ -197,14 +200,14 @@ Turn signal control stick
 Data bytes change each time turn signal ticks/lights up
 
 * 60D
-  * byte 2, bits 5-6 => 0b00=off tick, 0b01=left turn tick, 0b10=right turn tick
+  * `B.6-B.7` => 0b00=off tick, 0b01=left turn tick, 0b10=right turn tick
 
 #### Hazard lights
 
 Data bytes change each time lights are flashed on and off
 
 * 60D
-  * byte 2, bits 5-6 => 0b00=off, 0b11=blink on
+  * `B.6-B.7` => 0b00=off, 0b11=blink on
 
 This is really just a combination of both the left and right turn signal lights.
 Same bits seen when using turn signal control stick.
@@ -214,7 +217,7 @@ Same bits seen when using turn signal control stick.
 Cruise control on/off button on steering wheel
 
 * 551
-  * byte 6, bits 4-6 => 0b000=off, 0b101=on
+  * `F.5-F.7` => 0b000=off, 0b101=on
 
 Did not test setting cruise control speed or increasing/reducing speed setting, this would require the vehicle to be moving (minimum 40 km/h before cruise control can be active)
 
@@ -225,9 +228,9 @@ No change in messages
 #### Climate control fan
 
 * 358
-  * byte 2, bit 6 => 0=off, 1=fan on (any speed)
+  * `B.7` => 0=off, 1=fan on (any speed)
 * 35D
-  * byte 1, bit 0 => 0=off, 1=fan on (any speed)
+  * `A.1` => 0=off, 1=fan on (any speed)
 
 No other climate control setting showed any change in messages
 
@@ -236,23 +239,22 @@ No other climate control setting showed any change in messages
 Rear window defrost on/off button
 
 * 35D
-  * byte 1, bits 1-2 => 0b00=off, 0b11=on
+  * `A.2-A.3` => 0b00=off, 0b11=on
 
 #### Door ajar
 
 * 60D
-  * byte 1, bits 3-6
-    * bit 3    driver side front door => 0=closed, 1=open
-    * bit 4 passenger side front door => 0=closed, 1=open
-    * bit 5    driver side rear  door => 0=closed, 1=open
-    * bit 6 passenger side rear  door => 0=closed, 1=open
+  * `A.4`    driver side front door => 0=closed, 1=open
+  * `A.5` passenger side front door => 0=closed, 1=open
+  * `A.6`    driver side rear  door => 0=closed, 1=open
+  * `A.7` passenger side rear  door => 0=closed, 1=open
 
 #### Seat belt
 
 When seat belt is clicked in for the driver
 
 * 280
-  * byte 1, bit 1 => 0=clicked in, 1=not clicked in
+  * `A.2` => 0=clicked in, 1=not clicked in
 
 Most likely for enabling the seat belt indicator light on the dash
 
@@ -261,7 +263,7 @@ Also tried passenger seat belt but saw no change in messages
 #### Parking brake
 
 * 5C5
-  * byte 1, bit 2 => 0=off, 1=parking brake engaged
+  * `A.3` => 0=off, 1=parking brake engaged
 
 #### Radio buttons
 
